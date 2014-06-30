@@ -36,7 +36,7 @@ class Featurlicious {
 	 *
 	 * @var      string
 	 */
-	protected $plugin_slug = 'plugin-name';
+	protected $plugin_slug = 'featurlicious';
 
 	/**
 	 * Instance of this class.
@@ -54,7 +54,7 @@ class Featurlicious {
 	 *
 	 * @var      string
 	 */
-	protected $plugin_screen_hook_suffix = null;
+	protected $plugin_screen_hook_suffix = 'featurlicious/featurlicious-admin';
 
 	/**
 	 * Initialize the plugin by setting localization, filters, and administration functions.
@@ -78,9 +78,9 @@ class Featurlicious {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
 		// Define custom functionality. Read more about actions and filters: http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
-		add_action( 'TODO', array( $this, 'action_method_name' ) );
-		add_filter( 'TODO', array( $this, 'filter_method_name' ) );
-
+		add_action( 'admin_menu', array($this, 'sm_register_featurlicious_menu_page' ));
+		add_action( 'wp_ajax_sim_search', array( $this, 'sm_search_posts' ));
+		add_action( 'init', array( $this, 'sm_create_area_post_type' ));
 	}
 
 	/**
@@ -165,13 +165,16 @@ class Featurlicious {
 	 */
 	public function enqueue_admin_scripts() {
 
+
 		if ( ! isset( $this->plugin_screen_hook_suffix ) ) {
 			return;
 		}
 
 		$screen = get_current_screen();
+
 		if ( $screen->id == $this->plugin_screen_hook_suffix ) {
 			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'js/admin.js', __FILE__ ), array( 'jquery' ), $this->version );
+			wp_enqueue_script("jquery-ui-draggable");
 		}
 
 	}
@@ -201,12 +204,13 @@ class Featurlicious {
 	 */
 	public function add_plugin_admin_menu() {
 
+
 		/*
 		 * TODO:
 		 *
 		 * Change 'Page Title' to the title of your plugin admin page
 		 * Change 'Menu Text' to the text for menu item for the plugin settings page
-		 * Change 'plugin-name' to the name of your plugin
+		 * Change 'featurlicious' to the name of your plugin
 		 */
 		$this->plugin_screen_hook_suffix = add_plugins_page(
 			__( 'Page Title', $this->plugin_slug ),
@@ -214,8 +218,7 @@ class Featurlicious {
 			'read',
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )
-		);
-
+			);
 	}
 
 	/**
@@ -253,4 +256,114 @@ class Featurlicious {
 		// TODO: Define your filter hook callback here
 	}
 
+	/* Mis funciones */
+
+	/**
+	*
+	*/
+	public function sm_register_featurlicious_menu_page() {
+		add_menu_page( 'Featurlicious', 'Featurlicious', 'manage_options', 'featurlicious/featurlicious-admin.php', '', '', 26 );
+	}
+
+	/**
+	*
+	*/
+	public function sm_search_posts() {
+
+		$search = $_REQUEST["search"];
+
+		$args = array(
+			's' => $search,
+			'post_type' => 'post'
+			);
+
+		$result = new WP_QUERY($args);
+
+		$posts = array();
+
+		if($result->have_posts()) {
+			while($result->have_posts()) {
+				$result->the_post();
+				$post['the_title'] = get_the_title();
+				$post['the_id'] = get_the_ID();
+				array_push($posts, $post);
+			}
+		}
+
+		wp_reset_postdata();
+
+		echo json_encode($posts);
+		die();
+	}
+
+	/**
+	*
+	*
+	*/
+	public function sm_create_area_post_type() {
+		
+		$args = array(
+			'public'             => false,
+			'exclude_from_search'=> false,
+			'publicly_queryable' => false,
+			'show_ui'            => false,
+			'show_in_menu'       => false,
+			'query_var'          => false,
+			'rewrite'            => false,
+			'capability_type'    => 'post',
+			'has_archive'        => false,
+			'hierarchical'       => false,
+			'menu_position'      => null,
+			'supports'           => array( 'title', 'excerpt', 'custom-fields' )
+			);
+
+		register_post_type( 'sim_featured_area', $args );
+
+	}
+
+	/**
+	*
+	*
+	*/
+	public function sm_create_area($title, $description, $posts) {
+		
+		$post = array(
+			'post_title' => $title,
+			'post_excerpt' => $description,
+			'post_status' => 'publish',
+			'post_type' => 'sim_featured_area'
+			);
+
+		$post_id = wp_insert_post($post);
+		update_post_meta($post_id, 'sm_featured_posts', $posts);
+	}
+
+	/**
+	*
+	*
+	*/
+	public function sm_read_areas() {
+		
+		$args = array(
+			'post_type' => 'sim_featured_area'
+			);
+
+		$result = new WP_QUERY($args);
+
+		return $result;
+	}
+
+	/**
+	*
+	*
+	*/
+	public function sm_update_areas($post_id, $posts) {
+
+		$post = array(
+			'ID' => $post_id,
+			'sm_featured_posts' => $posts
+			);
+
+		$result = wp_update_post( $post, true );
+	}
 }

@@ -1,1 +1,7 @@
-/* This stylesheet is used to style the admin option form of the plugin. */
+.sm-search {
+	margin: 1em 0;
+}
+
+.sm-search .submit {
+	display: inline;
+}
