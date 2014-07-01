@@ -79,7 +79,12 @@ class Featurlicious {
 
 		// Define custom functionality. Read more about actions and filters: http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		add_action( 'admin_menu', array($this, 'sm_register_featurlicious_menu_page' ));
+
 		add_action( 'wp_ajax_sim_search', array( $this, 'sm_search_posts' ));
+		add_action( 'wp_ajax_sim_update_area', array( $this, 'sm_update_area' ));
+		add_action( 'wp_ajax_sim_remove_post', array( $this, 'sm_remove_post' ));
+		add_action( 'wp_ajax_sim_remove_area', array( $this, 'sm_remove_area' ));
+
 		add_action( 'init', array( $this, 'sm_create_area_post_type' ));
 	}
 
@@ -151,7 +156,7 @@ class Featurlicious {
 
 		$screen = get_current_screen();
 		if ( $screen->id == $this->plugin_screen_hook_suffix ) {
-			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'css/admin.css', __FILE__ ), array(), $this->version );
+			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'css/styles/stylesheets/screen.css', __FILE__ ), array(), $this->version );
 		}
 
 	}
@@ -274,7 +279,7 @@ class Featurlicious {
 
 		$args = array(
 			's' => $search,
-			'post_type' => 'post'
+			'post_type' => 'any'
 			);
 
 		$result = new WP_QUERY($args);
@@ -284,9 +289,12 @@ class Featurlicious {
 		if($result->have_posts()) {
 			while($result->have_posts()) {
 				$result->the_post();
-				$post['the_title'] = get_the_title();
-				$post['the_id'] = get_the_ID();
-				array_push($posts, $post);
+				if(get_post_type() != 'sim_featured_area') {
+					$post['the_id'] = get_the_ID();
+					$post['the_title'] = get_the_title();
+					$post['the_permalink'] = get_the_permalink();
+					array_push($posts, $post);
+				}
 			}
 		}
 
@@ -325,7 +333,7 @@ class Featurlicious {
 	*
 	*
 	*/
-	public function sm_create_area($title, $description, $posts) {
+	public function sm_create_area($title, $description) {
 		
 		$post = array(
 			'post_title' => $title,
@@ -335,7 +343,6 @@ class Featurlicious {
 			);
 
 		$post_id = wp_insert_post($post);
-		update_post_meta($post_id, 'sm_featured_posts', $posts);
 	}
 
 	/**
@@ -349,6 +356,7 @@ class Featurlicious {
 			);
 
 		$result = new WP_QUERY($args);
+		wp_reset_postdata();
 
 		return $result;
 	}
@@ -357,13 +365,101 @@ class Featurlicious {
 	*
 	*
 	*/
-	public function sm_update_areas($post_id, $posts) {
+	public function sm_update_area() {
 
-		$post = array(
-			'ID' => $post_id,
-			'sm_featured_posts' => $posts
+		$post_id = $_REQUEST['postId'];
+		$post_title = $_REQUEST['title'];
+		$post_permalink = $_REQUEST['permalink'];
+		$area_id = $_REQUEST['id'];
+
+		$new_post = array($post_id, $post_title, $post_permalink);
+
+		$posts = get_post_meta($area_id, 'sim_posts', true);
+
+		if(empty($posts)) {
+			$posts = array();
+		}
+
+		array_push($posts, $new_post);
+		$result = update_post_meta($area_id, 'sim_posts', $posts);
+
+		echo json_encode($new_post);
+		die();
+	}
+
+	/**
+	*
+	*/
+	public function sm_remove_post() {
+
+		$area_id = $_REQUEST['areaId'];
+		$post_id = $_REQUEST['postId'];
+
+		$posts = get_post_meta($area_id, 'sim_posts', true);
+
+		foreach($posts as $key => $post) {
+			if($post[0] == $post_id) {
+				unset($posts[$key]);
+				break;
+			}
+		}
+
+		$result = update_post_meta($area_id, 'sim_posts', $posts);
+
+		echo json_encode($posts);
+		die();
+	}
+
+	/**
+	*
+	*/
+	public function sm_remove_area() {
+
+		$area_id = $_REQUEST['areaId'];
+
+		wp_delete_post( $area_id );
+	}
+
+	/**
+	*
+	*/
+	public function get_featured_area($area_id) {
+
+		$args = array(
+			'p' => $area_id,
+			'post_type' => 'sim_featured_area'
 			);
 
-		$result = wp_update_post( $post, true );
+		$result = new WP_QUERY($args);
+		wp_reset_postdata();
+
+		$response = array();
+
+		if($result->have_posts()) {
+			while($result->have_posts()) {
+				$result->the_post();
+				$response['the_title'] = get_the_title();
+				$response['the_description'] = get_the_excerpt();
+				$posts = get_post_meta($area_id, 'sim_posts', true);
+				if($posts) {
+					$posts_ids = array();
+					foreach($posts as $post) {
+						array_push($posts_ids, $post[0]);
+					}
+				}				
+			}
+		}
+
+		$posts = array();
+
+		if(!empty($posts_ids)) {
+			
+			foreach($posts_ids as $id) {
+				$post = get_post( $id );
+				array_push($posts, $post);
+			}
+		}
+
+		return $posts;		
 	}
 }

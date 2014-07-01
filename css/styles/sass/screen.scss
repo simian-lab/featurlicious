@@ -1,0 +1,98 @@
+/* Welcome to Compass.
+ * In this file you should write your main styles. (or centralize your imports)
+ * Import this file using the following HTML or equivalent:
+ * <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" /> */
+ @import "compass/utilities/general/clearfix";
+
+ .initial {
+ 	display: inline-block;
+ 	float: left;
+ 	margin-right: 3em;
+ 	width: 40em;
+
+ 	.sm-search {
+ 		margin: 1em 0;
+
+ 		.submit {
+ 			display: inline;
+ 		}
+
+ 		#search-result {
+ 			margin-top: 1em;
+
+ 			span::after { 
+ 				content:" - ";
+ 			}
+
+ 			.title {
+ 				display: inline;
+ 			}
+ 		}
+ 	}
+
+ 	.add-area {
+ 		border: 1px solid #ddd;
+ 		padding: 0.5em;
+
+ 		form {
+ 			@include clearfix;
+
+ 			label {
+ 				display: inline-block;
+ 				padding-left: 0.7em;
+ 			}
+
+ 			.inputs {
+
+ 				input {
+ 					width: 20em;
+ 				}
+
+ 				label {
+ 					width: 9em;
+ 				}
+ 			}
+
+ 			.submit {
+ 				display: inline;
+ 				float: right;
+ 				margin: 0;
+ 				padding: 0;
+ 			}
+ 		} 		
+ 	}
+ }
+
+ .featured-areas {
+ 	display: inline-block;
+ 	margin-top: 4em;
+ 	width: 51em;
+
+ 	.postbox {
+ 		display: inline-block;
+ 		float: left;
+ 		margin-right: 4px;
+ 		padding: 1em;
+ 		width: 23em;
+
+ 		.posts-of-area {
+ 			margin-bottom: 1em;
+
+ 			ul{
+ 				.remove-link {
+ 					color: #a00;
+ 					text-decoration: none;
+ 				}
+ 			}
+
+ 			.submit {
+ 				display: inline;
+ 			}
+ 		}
+
+ 		.delete-area {
+ 			color: #a00;
+ 			text-decoration: none;
+ 		}
+ 	}
+ }
